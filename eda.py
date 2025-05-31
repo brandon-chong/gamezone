@@ -5,7 +5,10 @@ import seaborn as sns
 import numpy as np
 from pathlib import Path
 from ydata_profiling import ProfileReport
+import plotly.graph_objects as go
+import pySankey as plt_sk
 %matplotlib inline
+
 # %%
 BASE_DIR = Path(__file__).resolve().parent
 BASE_DIR / 'gamezone-orders-data.xlsx'
@@ -114,14 +117,6 @@ for j in range(i + 1, len(axes)):
 plt.tight_layout()
 plt.show()
 
-# %%
-
-print(df_consoles.describe())
-
-print(df_laptops.describe())
-
-print(df_peripherals.describe())
-
 #%% [markdown]
 # Let's look at repeat customers
 
@@ -137,13 +132,57 @@ repeat_customers
 
 #%%
 
-repeat_purchases = pd.merge(repeat_customers['USER_ID'], df)
+# product_ids_to_names = df[['PRODUCT_ID', 'PRODUCT_NAME_CLEANED']].drop_duplicates().set_index('PRODUCT_ID')['PRODUCT_NAME_CLEANED'].to_dict()
 
-repeat_purchases = repeat_purchases[['USER_ID', 'ORDER_ID', 'PURCHASE_DATE_CLEANED', 'PRODUCT_ID']]
-repeat_purchases.drop_duplicates(inplace=True)
+repeat_purchases = pd.merge(df, df, on=['USER_ID'], suffixes=('_1', '_2'))
+
+repeat_purchases = repeat_purchases[repeat_purchases['PURCHASE_DATE_CLEANED_1'] < repeat_purchases['PURCHASE_DATE_CLEANED_2']]
+
+follow_up_purchases = repeat_purchases[['PRODUCT_NAME_CLEANED_1', 'PRODUCT_NAME_CLEANED_2']]
+
+follow_up_purchase_ids = list(follow_up_purchases['PRODUCT_NAME_CLEANED_1'].unique())
+
+# indecies = 
+flows = []
+
+for leader in follow_up_purchase_ids:
+    for follower in follow_up_purchase_ids:
+        count = follow_up_purchases[(follow_up_purchases['PRODUCT_NAME_CLEANED_1'] == leader) & (follow_up_purchases['PRODUCT_NAME_CLEANED_2'] == follower)].shape[0]
+        flows.append((follow_up_purchase_ids.index(leader), follow_up_purchase_ids.index(follower), count))
+
+flows_array = np.array(flows)
+
+fig = go.Figure(go.Sankey(
+    node=dict(
+        pad=15,
+        thickness=20,
+        line=dict(color="black", width=0.5),
+        label= follow_up_purchase_ids + follow_up_purchase_ids,
+    ),
+    link=dict(
+        source=flows_array[:, 0], # leaders
+        target=flows_array[:, 1] + len(follow_up_purchase_ids), # followers
+        value=flows_array[:, 2] , # counts
+    )
+))
+
+fig.update_layout(title_text="Purchase patterns", font_size=12)
+fig.show()
+
+
+# follow_up_purchases[]
+
+# multiple_purchases = pd.merge(repeat_purchases, repeat_purchases, on=['USER_ID', ''], suffixes=('_1', '_2'))
+
+# repeat_purchases[]
+
+# repeat_purchases = repeat_purchases[['USER_ID', 'PURCHASE_DATE_CLEANED', 'ORDER_ID', 'PRODUCT_ID', 'PRODUCT_NAME_CLEANED']]
+# repeat_purchases.drop_duplicates(inplace=True)
 
 # repeat_purchases.groupby('USER_ID').nunique()['ORDER_ID'].reset_index()
 # repeat_purchases.pivot(index=['USER_ID', 'ORDER_ID'], columns='PURCHASE_DATE_CLEANED', values='PRODUCT_ID').reset_index()
-repeat_purchases.sort_values(by=['USER_ID', 'PURCHASE_DATE_CLEANED']).drop_duplicates()
+# repeat_purchases.sort_values(by=['USER_ID', 'PURCHASE_DATE_CLEANED']).drop_duplicates()
+
+
 
 # %%
