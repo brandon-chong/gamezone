@@ -10,6 +10,10 @@ import pySankey as plt_sk
 %matplotlib inline
 
 # %%
+def apriori(df, min_support=0.01):
+
+
+# %%
 BASE_DIR = Path(__file__).resolve().parent
 BASE_DIR / 'gamezone-orders-data.xlsx'
 df = pd.read_excel(BASE_DIR / 'gamezone-orders-data.xlsx', sheet_name='orders_cleaned')
@@ -126,6 +130,27 @@ repeat_customers = df.groupby('USER_ID').nunique()['ORDER_ID'].reset_index()
 repeat_customers = repeat_customers[repeat_customers['ORDER_ID']>=2]
 repeat_customers
 
+#%% [markdown]
+# Items bought together have different order ids, so let's combine them by using the USER_ID and PURCHASE_DATE_CLEANED to find make a new purchase id, so we can see which items are bought together
+
+#%% 
+df['PURCHASE_ID'] =  df['PURCHASE_DATE_CLEANED'].dt.strftime('%Y-%m-%d') + '_' + df['USER_ID'].astype(str)
+
+#%% [markdown]
+# Does purchasing a particular product make one more likely to purchase another one? What about coming back to purchase another product later?
+
+#%%
+
+#Supports
+product_statistics = df.groupby('PRODUCT_NAME_CLEANED')['USER_ID'].nunique().reset_index().rename(columns={'USER_ID': 'SUPPORT'})
+product_statistics['SUPPORT'] = product_statistics['SUPPORT'] / df['USER_ID'].nunique()
+
+# for 
+
+
+#%%
+
+
 
 # %% [markdown]
 # Let's begin by looking to see if purchasing any particular product makes one more likely to puchase another one
@@ -158,6 +183,7 @@ fig = go.Figure(go.Sankey(
         thickness=20,
         line=dict(color="black", width=0.5),
         label= follow_up_purchase_ids + follow_up_purchase_ids,
+        color = ["red", "blue", "green", "orange", "purple", "cyan", "yellow", "magenta", "lime", "teal", "brown", "pink", "olive", "navy", "gold", "coral", "indigo" ][:len(follow_up_purchase_ids)] * 2
     ),
     link=dict(
         source=flows_array[:, 0], # leaders
@@ -169,6 +195,7 @@ fig = go.Figure(go.Sankey(
 fig.update_layout(title_text="Purchase patterns", font_size=12)
 fig.show()
 
+# %% 
 
 # follow_up_purchases[]
 
